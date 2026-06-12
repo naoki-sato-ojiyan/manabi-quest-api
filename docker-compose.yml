@@ -16,9 +16,13 @@ services:
       - DB_PORT=${DB_PORT}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - EMAIL_HOST=${EMAIL_HOST} 
+      - EMAIL_PORT=${EMAIL_PORT} 
     depends_on:
       db:
         condition: service_healthy
+      mailhog:
+        condition: service_started
 
   db:
     image: postgres:16
@@ -33,6 +37,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
 
 volumes:
   postgres_data:

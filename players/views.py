@@ -1,3 +1,4 @@
+from datetime import timedelta
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -5,9 +6,11 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model, authenticate
 from django.utils import timezone
-from datetime import timedelta
-from .models import PlayerStatus, RateLimitLog
+from django.core.mail import send_mail  # 追加
+from django.conf import settings  # 追加
+from .models import PlayerStatus, RateLimitLog, EmailVerificationToken
 from .serializers import RegisterSerializer, PlayerStatusSerializer
+
 
 User = get_user_model()
 
@@ -39,7 +42,7 @@ def get_client_ip(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    # 追加：1時間3回までに制限
+    # 変更なし
     ip = get_client_ip(request)
     if check_rate_limit(ip, 'register', max_requests=3, period_minutes=60):
         return Response(
@@ -48,12 +51,20 @@ def register(request):
         )
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
-        user = serializer.save()
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response({
-            'token': token.key,
-            'email': user.email
-        }, status=status.HTTP_201_CREATED)
+        # 変更：登録時はis_active=Falseにしてメール認証待ちにする
+        user = serializer.save(is_active=False)
+        verification = EmailVerificationToken.objects.create(user=user)
+        verify_url = f"{settings.API_BASE_URL}/api/verify-email/?token={verification.token}"
+        send_mail(
+            subject='【まなびクエスト】メールアドレスの確認',
+            message=f'以下のリンクをクリックしてメールアドレスを確認してください。\n\n{verify_url}',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+        )
+        return Response(
+            {'message': '確認メールを送信しました。メールをご確認ください。'},
+            status=status.HTTP_201_CREATED
+        )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -112,3 +123,23 @@ def create_player(request):
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# 追加：メール認証リンクをクリックしたときの処理
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def verify_email(request):
+    token = request.query_params.get('token')
+    if not token:
+        return Response({'error': 'トークンがありません'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    try:
+        verification = EmailVerificationToken.objects.get(token=token)
+    except EmailVerificationToken.DoesNotExist:
+        return Response({'error': '無効なトークンです'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    user = verification.user
+    user.is_active = True
+    user.save()
+    verification.delete()
+    Token.objects.get_or_create(user=user)
+    return Response({'message': 'メールアドレスの確認が完了しました。ログインしてください。'})

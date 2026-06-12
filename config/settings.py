@@ -107,3 +107,12 @@ CSRF_TRUSTED_ORIGINS = [
     'https://manabi-quest.com',
     'https://www.manabi-quest.com',
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'mailhog')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 1025))
+EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = 'noreply@manabi-quest.com'
+# フロントエンドURL（メール認証リンクの生成に使用）
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://127.0.0.1:5500')
+API_BASE_URL = os.environ.get('API_BASE_URL', 'http://localhost:8000')

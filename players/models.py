@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+import uuid
 
 
 class UserManager(BaseUserManager):
@@ -49,7 +50,7 @@ class PlayerStatus(models.Model):
 
     def __str__(self):
         return f'{self.character_name} - Lv.{self.level}'
-    
+
 class RateLimitLog(models.Model):
     ip = models.GenericIPAddressField()
     endpoint = models.CharField(max_length=100)
@@ -63,3 +64,11 @@ class RateLimitLog(models.Model):
 
     def __str__(self):
         return f'{self.ip} - {self.endpoint} - {self.requested_at}'
+
+class EmailVerificationToken(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    token = models.UUIDField(default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.user.email} - {self.token}'
