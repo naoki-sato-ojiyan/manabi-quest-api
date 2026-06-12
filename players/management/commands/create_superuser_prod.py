@@ -7,9 +7,12 @@ class Command(BaseCommand):
     help = 'スーパーユーザーを作成する'
 
     def handle(self, *args, **options):
-        email = os.environ.get('SUPERUSER_EMAIL', 'nakky19900709@gmail.com')
-        password = os.environ.get('SUPERUSER_PASSWORD')
+        email = os.environ.get('SUPERUSER_EMAIL')
+        if not email:
+            self.stdout.write('SUPERUSER_EMAILが設定されていません。スキップします。')
+            return
 
+        password = os.environ.get('SUPERUSER_PASSWORD')
         if not password:
             self.stdout.write('SUPERUSER_PASSWORDが設定されていません。スキップします。')
             return
