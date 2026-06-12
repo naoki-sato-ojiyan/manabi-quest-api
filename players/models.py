@@ -49,3 +49,17 @@ class PlayerStatus(models.Model):
 
     def __str__(self):
         return f'{self.character_name} - Lv.{self.level}'
+    
+class RateLimitLog(models.Model):
+    ip = models.GenericIPAddressField()
+    endpoint = models.CharField(max_length=100)
+    requested_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            # IPとエンドポイントと日時で絞り込むクエリを高速化
+            models.Index(fields=['ip', 'endpoint', 'requested_at']),
+        ]
+
+    def __str__(self):
+        return f'{self.ip} - {self.endpoint} - {self.requested_at}'

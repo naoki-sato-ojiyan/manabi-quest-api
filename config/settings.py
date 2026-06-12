@@ -19,14 +19,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 新規追加
     'rest_framework',
     'corsheaders',
-    # 新規追加
     'players.apps.PlayersConfig',
-    # 追加：Token認証用
     'rest_framework.authtoken',
-
 ]
 
 MIDDLEWARE = [
