@@ -31,6 +31,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # 新規追加：静的ファイルの配信を効率化
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # 新規追加：CORSはSessionの直後
     'django.middleware.common.CommonMiddleware',
@@ -84,6 +85,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # 追加
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -102,3 +105,9 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
+# 新規追加：本番環境のCSRF設定
+CSRF_TRUSTED_ORIGINS = [
+    'https://manabi-quest.com',
+    'https://www.manabi-quest.com',
+]
