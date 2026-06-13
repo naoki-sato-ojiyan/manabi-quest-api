@@ -6,16 +6,15 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model, authenticate
 from django.utils import timezone
-from django.core.mail import send_mail  # 追加
-from django.conf import settings  # 追加
+from django.core.mail import send_mail
+from django.conf import settings
 from .models import PlayerStatus, RateLimitLog, EmailVerificationToken
 from .serializers import RegisterSerializer, PlayerStatusSerializer
-
 
 User = get_user_model()
 
 
-# 追加：レート制限チェックとログ記録
+# レート制限チェックとログ記録
 def check_rate_limit(ip, endpoint, max_requests, period_minutes):
     """指定期間内のリクエスト数が上限を超えていたらTrueを返す"""
     since = timezone.now() - timedelta(minutes=period_minutes)
@@ -30,7 +29,7 @@ def check_rate_limit(ip, endpoint, max_requests, period_minutes):
     return False
 
 
-# 追加：CloudFront経由でも正しいIPを取得する
+# CloudFront経由でも正しいIPを取得する
 def get_client_ip(request):
     """リクエスト元のIPアドレスを取得する"""
     forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -42,7 +41,6 @@ def get_client_ip(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    # 変更なし
     ip = get_client_ip(request)
     if check_rate_limit(ip, 'register', max_requests=3, period_minutes=60):
         return Response(
@@ -71,7 +69,6 @@ def register(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
-    # 追加：15分10回までに制限
     ip = get_client_ip(request)
     if check_rate_limit(ip, 'login', max_requests=10, period_minutes=15):
         return Response(
@@ -100,6 +97,7 @@ def login(request):
         pass
     return Response({'error': 'メールアドレスまたはパスワードが違います'},
                     status=status.HTTP_401_UNAUTHORIZED)
+
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
@@ -133,6 +131,7 @@ def create_player(request):
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # 追加：メール認証リンクをクリックしたときの処理
 @api_view(['GET'])

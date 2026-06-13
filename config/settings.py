@@ -118,3 +118,18 @@ DEFAULT_FROM_EMAIL = 'noreply@manabi-quest.com'
 # フロントエンドURL（メール認証リンクの生成に使用）
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://127.0.0.1:5500')
 API_BASE_URL = os.environ.get('API_BASE_URL', 'http://localhost:8000')
+
+# エラーログをCloudWatchに出力する
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'ERROR',
+    },
+}
