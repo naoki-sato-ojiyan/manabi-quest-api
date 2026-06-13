@@ -82,14 +82,24 @@ def login(request):
     password = request.data.get('password')
     user = authenticate(request, username=email, password=password)
     if user:
-        token, _ = Token.objects.get_or_create(user=user)
+        Token.objects.filter(user=user).delete()
+        token = Token.objects.create(user=user)
         return Response({
             'token': token.key,
             'email': user.email
         })
+    # 変更：メール未認証の場合は専用メッセージを返す
+    try:
+        unverified = User.objects.get(email=email)
+        if not unverified.is_active:
+            return Response(
+                {'error': 'メール認証が完了していません。届いたメールのリンクをクリックしてください。'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+    except User.DoesNotExist:
+        pass
     return Response({'error': 'メールアドレスまたはパスワードが違います'},
                     status=status.HTTP_401_UNAUTHORIZED)
-
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])

@@ -95,7 +95,7 @@ AUTH_USER_MODEL = 'players.User'
 # 新規追加：DRFの認証設定
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'players.authentication.ExpiringTokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -111,7 +111,9 @@ CSRF_TRUSTED_ORIGINS = [
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'mailhog')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 1025))
-EMAIL_USE_TLS = False
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'False') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = 'noreply@manabi-quest.com'
 # フロントエンドURL（メール認証リンクの生成に使用）
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://127.0.0.1:5500')
