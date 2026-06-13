@@ -152,3 +152,58 @@ def verify_email(request):
     verification.delete()
     Token.objects.get_or_create(user=user)
     return Response({'message': 'メールアドレスの確認が完了しました。ログインしてください。'})
+
+# 追加：パスワードリセットメール送信
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_reset(request):
+    email = request.data.get('email')
+    if not email:
+        return Response({'error': 'メールアドレスを入力してください'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        # 存在しないメールアドレスでも同じメッセージを返す（ユーザー列挙攻撃対策）
+        return Response({'message': 'パスワードリセットメールを送信しました。メールをご確認ください。'})
+
+    from .models import PasswordResetToken
+    reset_token = PasswordResetToken.objects.create(user=user)
+    reset_url = f"{settings.FRONTEND_URL}/?reset_token={reset_token.token}"
+    send_mail(
+        subject='【まなびクエスト】パスワードリセット',
+        message=f'以下のリンクからパスワードを再設定してください。\n\n{reset_url}\n\nこのリンクは1時間有効です。',
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+    )
+    return Response({'message': 'パスワードリセットメールを送信しました。メールをご確認ください。'})
+
+
+# 追加：パスワードリセット実行
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_reset_confirm(request):
+    token = request.data.get('token')
+    new_password = request.data.get('password')
+    if not token or not new_password:
+        return Response({'error': 'トークンとパスワードは必須です'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    from .models import PasswordResetToken
+    try:
+        reset_token = PasswordResetToken.objects.get(token=token, is_used=False)
+    except PasswordResetToken.DoesNotExist:
+        return Response({'error': '無効なトークンです'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    # 1時間以上経過したトークンは無効
+    if timezone.now() - reset_token.created_at > timedelta(hours=1):
+        return Response({'error': 'トークンの有効期限が切れています。再度申請してください。'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    user = reset_token.user
+    user.set_password(new_password)
+    user.save()
+    reset_token.is_used = True
+    reset_token.save()
+    return Response({'message': 'パスワードを変更しました。ログインしてください。'})
